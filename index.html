@@ -1,0 +1,2077 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Crack the Vault</title>
+<style>
+:root{
+  --bg: #0E1B2E;
+  --bg-2: #0A1422;
+  --panel: #142438;
+  --panel-2: #182B42;
+  --line: rgba(232,163,61,0.18);
+  --grid: rgba(255,255,255,0.035);
+  --accent: #E8A33D;
+  --accent-dim: rgba(232,163,61,0.35);
+  --cyan: #5EEAD4;
+  --danger: #E8635A;
+  --text: #EDEEF0;
+  --text-dim: #8FA3BF;
+  --mono: ui-monospace, SFMono-Regular, "Courier New", monospace;
+  --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:transparent;color:var(--text);font-family:var(--sans);}
+#app{
+  min-height:100vh;
+  background: linear-gradient(var(--grid) 1px, transparent 1px) 0 0/32px 32px, linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/32px 32px, radial-gradient(ellipse at 50% -10%, #1a2f4a 0%, var(--bg) 55%);
+  background-color:var(--bg);
+  padding:28px 18px 60px;
+}
+.wrap{max-width:760px;margin:0 auto;}
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+h1{
+  font-family:var(--mono);
+  font-weight:700;
+  font-size:clamp(28px,5vw,42px);
+  letter-spacing:-0.01em;
+  margin:0 0 6px;
+  color:var(--text);
+}
+.sub{color:var(--text-dim); font-size:14.5px; line-height:1.55; max-width:56ch; margin-bottom:28px;}
+.panel{
+  background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border:1px solid var(--line);
+  border-radius:2px;
+  padding:22px;
+  position:relative;
+  margin-bottom:18px;
+}
+.panel::before, .panel::after{
+  content:"";
+  position:absolute;
+  width:10px;
+  height:10px;
+  border:1px solid var(--accent-dim);
+}
+.panel::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+.panel::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+.role-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media(max-width:560px){.role-grid{grid-template-columns:1fr;}}
+.role-card{
+  cursor:pointer;
+  text-align:left;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:2px;
+  padding:22px;
+  transition:border-color .15s, transform .15s;
+  font-family:var(--sans);
+  color:var(--text);
+}
+.role-card:hover{border-color:var(--accent); transform:translateY(-2px);}
+.role-card .tag{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.12em; text-transform:uppercase;}
+.role-card h3{margin:8px 0 6px; font-family:var(--mono); font-size:19px;}
+.role-card p{margin:0; color:var(--text-dim); font-size:13px; line-height:1.5;}
+label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); margin:14px 0 6px;}
+select, input[type=text]{
+  width:100%;
+  background:var(--bg-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  padding:10px 12px;
+  border-radius:2px;
+  outline:none;
+}
+select:focus, input[type=text]:focus{border-color:var(--accent);}
+button{
+  font-family:var(--mono);
+  font-size:13px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  background:var(--accent);
+  color:#1a1206;
+  border:none;
+  padding:11px 18px;
+  border-radius:2px;
+  cursor:pointer;
+  font-weight:700;
+  transition:filter .15s, transform .1s;
+}
+button:hover{filter:brightness(1.08);}
+button:active{transform:scale(0.98);}
+button.ghost{
+  background:transparent;
+  color:var(--accent);
+  border:1px solid var(--accent-dim);
+}
+button.small{padding:7px 12px; font-size:11px;}
+button:disabled{opacity:.4; cursor:not-allowed;}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+.code-display{
+  font-family:var(--mono);
+  font-size:34px;
+  letter-spacing:.25em;
+  color:var(--accent);
+  text-align:center;
+  padding:18px 0;
+  border:1px dashed var(--accent-dim);
+  border-radius:2px;
+  margin:14px 0;
+}
+.hint{font-size:12px; color:var(--text-dim); margin-top:8px; line-height:1.5;}
+.error-msg{color:var(--danger); font-size:13px; font-family:var(--mono); margin-top:8px;}
+/* Dial */
+.dial-wrap{display:flex; align-items:center; gap:18px; margin-bottom:16px;}
+.dial-stats{flex:1;}
+.dial-stats .n{font-family:var(--mono); font-size:28px; color:var(--accent);}
+.dial-stats .lbl{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;}
+.chat{max-height:420px; overflow-y:auto; margin-bottom:14px; padding-right:4px;}
+.msg{margin-bottom:12px; font-size:14px; line-height:1.5;}
+.msg .who{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px;}
+.msg.user .who{color:var(--cyan);}
+.msg.ai .who{color:var(--accent);}
+.msg .bubble{
+  background:var(--bg-2);
+  border:1px solid var(--line);
+  border-radius:2px;
+  padding:9px 12px;
+  display:inline-block;
+  max-width:90%;
+}
+.msg.ai .bubble{border-color:var(--accent-dim);}
+.oracle-answer{text-align:center; padding:6px 0; font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;}
+.oracle-answer.yes{color:var(--cyan);}
+.oracle-answer.no{color:var(--danger);}
+.oracle-answer.other{color:var(--accent);}
+.oracle-answer .icon{margin-right:6px;}
+.oracle-detail{font-size:12px; color:var(--text-dim); font-weight:400; letter-spacing:0; text-transform:none; margin-top:4px;}
+.progress-row{display:flex; align-items:center; gap:10px; margin-top:4px;}
+.progress-row .pcount{font-family:var(--mono); font-size:13px; color:var(--text-dim);}
+.progress-bar{flex:1; font-family:var(--mono); font-size:14px; letter-spacing:1px; color:var(--accent); line-height:1;}
+.helper-text{font-size:11px; color:var(--text-dim); margin-top:2px; margin-bottom:6px; font-style:italic;}
+.leaderboard{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13px;}
+.leaderboard th{text-align:left; color:var(--text-dim); font-weight:400; font-size:11px; text-transform:uppercase; letter-spacing:.08em; padding:6px 8px; border-bottom:1px solid var(--line);}
+.leaderboard td{padding:7px 8px; border-bottom:1px solid rgba(255,255,255,0.04);}
+.leaderboard tr:first-child td{color:var(--accent);}
+.loading{color:var(--text-dim); font-family:var(--mono); font-size:12px; font-style:italic;}
+.backlink{font-family:var(--mono); font-size:11px; color:var(--text-dim); cursor:pointer; text-decoration:underline; margin-bottom:16px; display:inline-block;}
+.win{text-align:center; padding:20px 0;}
+.win .term{font-family:var(--mono); font-size:26px; color:var(--cyan); margin:10px 0;}
+.win .score{font-family:var(--mono); font-size:44px; color:var(--accent); margin:10px 0;}
+
+/* Anti-Cheat & Warning Modal System */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card {
+  background: var(--bg-1);
+  border: 1.5px solid #ff4757;
+  border-radius: 12px;
+  padding: 28px 24px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 71, 87, 0.2);
+}
+
+.modal-title {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff4757;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.modal-body {
+  font-size: 14.5px;
+  color: var(--text-main);
+  line-height: 1.55;
+  margin-bottom: 22px;
+}
+
+.modal-btn {
+  background: #ff4757;
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.2s ease;
+}
+
+.modal-btn:hover {
+  background: #ff6b81;
+  box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
+}
+
+/* Admin Controls & Participant Leaderboard Styling */
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.toggle-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+.toggle-card:hover { border-color: var(--accent); }
+.toggle-card.active { border-color: var(--cyan); background: linear-gradient(180deg, rgba(94, 234, 212, 0.06) 0%, var(--bg-2) 100%); }
+.toggle-header { display: flex; justify-content: space-between; align-items: center; }
+.toggle-title { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
+.toggle-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+.toggle-status { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; font-weight: 700; text-transform: uppercase; }
+.toggle-status.on { color: var(--cyan); }
+.toggle-status.off { color: var(--text-dim); }
+
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--bg); border: 1px solid var(--line); transition: 0.25s ease; border-radius: 24px; }
+.slider::before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-dim); transition: 0.25s ease; border-radius: 50%; }
+input:checked + .slider { background-color: rgba(94, 234, 212, 0.25); border-color: var(--cyan); box-shadow: 0 0 10px rgba(94, 234, 212, 0.3); }
+input:checked + .slider::before { transform: translateX(20px); background-color: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+
+.preset-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; margin-bottom: 10px; }
+.preset-chip { background: var(--bg-2); border: 1px solid var(--line); color: var(--text-dim); font-family: var(--mono); font-size: 11.5px; padding: 6px 12px; border-radius: 2px; cursor: pointer; transition: all 0.15s ease; }
+.preset-chip:hover { border-color: var(--accent); color: var(--accent); }
+.preset-chip.active { background: rgba(232, 163, 61, 0.15); border-color: var(--accent); color: var(--accent); font-weight: 700; box-shadow: 0 0 8px var(--accent-dim); }
+
+.host-controls-panel { background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 2px; padding: 14px 18px; margin: 14px 0 18px; }
+.host-controls-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.host-actions-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.action-toggle-btn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 12px; border-radius: 2px; background: var(--bg-2); border: 1px solid var(--line); color: var(--text-dim); cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.action-toggle-btn:hover { border-color: var(--cyan); color: var(--text); }
+.action-toggle-btn.active { background: rgba(94, 234, 212, 0.12); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px rgba(94, 234, 212, 0.25); }
+.action-toggle-btn .state-dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+.action-toggle-btn.active .state-dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.extend-time-group { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.extend-time-group span { font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+
+.allotted-time-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(232, 163, 61, 0.12); border: 1px solid var(--line); padding: 5px 12px; border-radius: 16px; font-family: var(--mono); font-size: 11.5px; color: var(--accent); margin-bottom: 12px; }
+.allotted-time-badge .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 6px var(--accent); }
+.timer-box { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; line-height: 1; }
+.timer-box.urgent { color: var(--danger); }
+.allotted-sub { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); letter-spacing: 0.06em; margin-top: 4px; text-transform: uppercase; }
+
+.leaderboard-panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: 2px; padding: 18px; margin-top: 18px; }
+.lb-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
+.lb-title { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cyan); display: flex; align-items: center; gap: 6px; }
+.lb-broadcast-tag { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(94, 234, 212, 0.1); color: var(--cyan); border: 1px solid rgba(94, 234, 212, 0.3); padding: 2px 6px; border-radius: 10px; }
+.lb-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+.lb-table th { text-align: left; padding: 6px 8px; font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); }
+.lb-table td { padding: 8px; border-bottom: 1px dashed rgba(255, 255, 255, 0.04); vertical-align: middle; }
+.lb-row.active-user { background: rgba(94, 234, 212, 0.08); border-left: 3px solid var(--cyan); }
+.lb-row.active-user td:first-child { padding-left: 10px; }
+.rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 2px; font-size: 11px; font-weight: 700; background: var(--bg); border: 1px solid var(--line); color: var(--text-dim); }
+.rank-badge.gold { background: rgba(232, 163, 61, 0.2); border-color: var(--accent); color: var(--accent); }
+.rank-badge.silver { background: rgba(94, 234, 212, 0.2); border-color: var(--cyan); color: var(--cyan); }
+.rank-badge.bronze { background: rgba(205, 127, 50, 0.2); border-color: #cd7f32; color: #f39c12; }
+.status-pill { display: inline-block; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 8px; font-weight: 600; }
+.status-pill.cracked { background: rgba(94, 234, 212, 0.15); color: var(--cyan); }
+.status-pill.interrogating { background: rgba(232, 163, 61, 0.15); color: var(--accent); }
+.status-pill.timeout { background: rgba(232, 99, 90, 0.15); color: var(--danger); }
+.you-tag { font-size: 9px; background: var(--cyan); color: #0a1422; padding: 1px 5px; border-radius: 2px; font-weight: 700; margin-left: 5px; vertical-align: middle; }
+.admin-stats-bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; margin-top: 8px; }
+.admin-stat-card { flex: 1; min-width: 140px; background: var(--bg); border: 1px solid var(--line); padding: 12px 16px; border-radius: 2px; }
+.admin-stat-num { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1; }
+.admin-stat-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-top: 6px; }
+
+/* Exam Status Bar & Integrity Proctoring Badges */
+.exam-status-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.integrity-badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); color: var(--text-dim); transition: all 0.3s ease; }
+.integrity-badge.active { background: rgba(0, 230, 118, 0.08); border-color: rgba(0, 230, 118, 0.35); color: #00e676; box-shadow: 0 0 12px rgba(0, 230, 118, 0.15); }
+.integrity-badge.arming { background: rgba(255, 179, 0, 0.08); border-color: rgba(255, 179, 0, 0.35); color: #ffb300; }
+.gate-modal-card { max-width: 480px; border-color: var(--cyan) !important; box-shadow: 0 0 40px rgba(94, 234, 212, 0.25) !important; text-align: center; }
+
+/* Progressive Word Clues */
+.clue-box { background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px; padding: 14px 18px; margin-top: 14px; margin-bottom: 14px; transition: all 0.3s ease; }
+.clue-box.locked { background: rgba(255, 255, 255, 0.02); border-style: dashed; border-color: rgba(255, 255, 255, 0.14); }
+.clue-box.unlocked { background: linear-gradient(180deg, rgba(94, 234, 212, 0.08) 0%, rgba(10, 20, 34, 0.95) 100%); border-color: var(--cyan); box-shadow: 0 0 24px rgba(94, 234, 212, 0.16); }
+.clue-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.clue-title { font-family: var(--mono); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.clue-tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); color: var(--text-dim); }
+.clue-tag.lvl-1 { background: rgba(232, 163, 61, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+.clue-tag.lvl-2 { background: rgba(94, 234, 212, 0.2); color: var(--cyan); border: 1px solid var(--cyan); }
+.clue-tag.lvl-3 { background: rgba(0, 230, 118, 0.2); color: #00e676; border: 1px solid #00e676; }
+.clue-pattern { font-family: var(--mono); font-size: 24px; font-weight: 700; letter-spacing: 0.28em; color: var(--cyan); margin: 10px 0 8px 0; text-align: center; padding: 10px 14px; background: rgba(0, 0, 0, 0.35); border-radius: 4px; border: 1px solid rgba(94, 234, 212, 0.25); user-select: none; }
+.clue-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+
+/* Status Pills for Admin Leaderboard */
+.status-pill.ongoing { background: rgba(94, 234, 212, 0.14); color: var(--cyan); border: 1px solid rgba(94, 234, 212, 0.35); display: inline-flex; align-items: center; gap: 5px; }
+.status-pill.ongoing .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.status-pill.finished { background: rgba(142, 163, 191, 0.14); color: var(--text-dim); border: 1px solid rgba(142, 163, 191, 0.25); }
+
+/* Active Room Resume Card */
+.active-room-card { background: linear-gradient(180deg, rgba(232, 163, 61, 0.1) 0%, rgba(20, 36, 56, 0.95) 100%); border: 1px solid var(--accent); border-radius: 4px; padding: 14px 18px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35); }
+.active-room-info { display: flex; flex-direction: column; gap: 4px; }
+.active-room-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.active-room-code { font-size: 14px; color: var(--text); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// Polyfill storage API if window.storage is missing
+if (!window.storage) {
+  window.storage = {
+    async set(key, value, shared) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    async get(key, shared) {
+      try {
+        const val = localStorage.getItem(key);
+        return val !== null ? { value: val } : null;
+      } catch (e) {
+        return null;
+      }
+    },
+    async list(prefix, shared) {
+      try {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(prefix)) {
+            keys.push(k);
+          }
+        }
+        return { keys };
+      } catch (e) {
+        return { keys: [] };
+      }
+    }
+  };
+}
+
+const CATEGORIES = {
+  "Programming Fundamentals": [
+    "Variable", "Loop", "Function", "Array", "If-Else",
+    "String", "Integer", "Boolean", "Recursion", "Constant",
+    "Bug", "Compiler", "Comment", "Pointer"
+  ],
+  "Basic Languages & Tools": [
+    "Python", "C Language", "Java", "C++", "HTML",
+    "JavaScript", "VS Code", "Terminal"
+  ],
+  "Computer Science Basics": [
+    "Algorithm", "Binary", "RAM", "CPU", "Operating System",
+    "Output / Print", "Keyboard", "Memory"
+  ],
+  "Programming Languages": ["Python", "JavaScript", "Rust", "TypeScript", "C++", "Go", "Java", "Kotlin", "Swift", "Haskell"],
+  "UI/UX Designs": ["Wireframe", "Glassmorphism", "Design System", "Typography", "Micro-interaction", "User Journey Map", "Figma", "Color Palette", "Responsive Layout", "Accessibility (a11y)"],
+  "Language Authors": ["Guido van Rossum", "Brendan Eich", "Dennis Ritchie", "Bjarne Stroustrup", "James Gosling", "Rob Pike", "Graydon Hoare", "Anders Hejlsberg", "Larry Wall", "Yukihiro Matsumoto"],
+  "Cloud": ["Kubernetes", "Docker", "Amazon S3", "Serverless", "AWS Lambda", "Microservices", "Terraform", "Load Balancer", "Cloudflare", "IAM Policy"],
+  "Data Structures": ["Linked List", "Binary Tree", "Hash Table", "Stack", "Queue", "Graph", "Heap", "Trie", "Red-Black Tree", "B-Tree"],
+  "MNC Company Details": ["Google", "Microsoft", "Apple", "Amazon", "Meta", "NVIDIA", "Netflix", "Intel", "IBM", "Oracle"],
+  "MNC Quotes": ["Move Fast and Break Things", "Stay Hungry, Stay Foolish", "Organize the World's Information", "Don't Be Evil", "Think Different", "Customer Obsession", "Embrace and Extend", "Work Hard, Have Fun, Make History", "Connecting People", "Move Fast with Stable Infrastructure"]
+};
+const MAX_QUESTIONS = 20;
+
+let state = {
+  screen: "role",
+  apiKey: localStorage.getItem('participant_api_key') || "",
+  tabSwitchWarnings: 0,
+  cheatingTerminated: false,
+  fullScreenEnabled: true,
+  warningsEnabled: true,
+  showLeaderboard: false,
+  maxQuestions: 20,
+  timerSeconds: 180,
+  timerStartAt: null,
+  timerInterval: null,
+  timedOut: false,
+  leaderboard: [],
+  antiCheatArmed: false,
+  lastFullscreenTransitionAt: 0,
+  armTimer: null,
+  currentClue: null,
+  adminLbInterval: null
+};
+
+// Points Calculation Formula:
+// 1. Solved Tier: Base 100 pts + (maxQuestions - qCount) * 5 (100 - 195 pts)
+// 2. Unsolved Tier (Everyone fails / timeout / max questions reached):
+//    "Lesser the questions asked, higher the points allotted"
+//    Efficiency: (maxQuestions - qCount) * 3.5 pts + small closeness tie-breaker bonus (+1 per Yes/Partially hint, max 6 pts)
+//    Floored at 3 pts for attempting, capped at 85 pts so cracked vaults (100+) always rank higher.
+// 3. Inactive (0 questions asked): 0 pts
+// 4. CRITICAL INTEGRITY RULE: Disqualified / leaving full screen after fair warning = STRICTLY 0 POINTS.
+function calculateScore(solved, qCount, maxQuestions = 20, history = [], cheatingTerminated = false) {
+  if (cheatingTerminated) return 0; // Strict 0 points penalty
+  const maxQ = Math.max(3, Number(maxQuestions) || 20);
+  const cleanQ = Math.max(0, Math.min(maxQ, Number(qCount) || 0));
+  if (cleanQ === 0) return 0;
+  if (solved) {
+    const unused = Math.max(0, maxQ - cleanQ);
+    return 100 + (unused * 5);
+  }
+  const unused = Math.max(0, maxQ - cleanQ);
+  const efficiencyPoints = unused * 3.5;
+
+  let positiveHints = 0;
+  if (Array.isArray(history)) {
+    positiveHints = history.filter(h => {
+      const a = (h.a || '').toLowerCase();
+      return a.startsWith('yes') || a.startsWith('partially');
+    }).length;
+  }
+  const closenessBonus = Math.min(6, positiveHints);
+
+  const total = Math.round(efficiencyPoints + closenessBonus);
+  return Math.max(3, Math.min(85, total));
+}
+
+// Progressive Word Clues Helper (Scales adaptively to maxQuestions)
+function getProgressiveClues(term, qCount, maxQuestions = 20) {
+  const maxQ = Math.max(3, Number(maxQuestions || state.maxQuestions) || 20);
+  const lvl1 = Math.max(2, Math.floor(maxQ * 0.5));
+  const lvl2 = Math.max(lvl1 + 1, Math.floor(maxQ * 0.7));
+  const lvl3 = Math.max(lvl2 + 1, Math.floor(maxQ * 0.85));
+
+  if (!term || qCount < lvl1) {
+    return {
+      unlocked: false,
+      level: 0,
+      qCount: qCount || 0,
+      needed: Math.max(0, lvl1 - (qCount || 0)),
+      clue: "",
+      desc: "",
+      conceptHint: "",
+      lvl1Threshold: lvl1,
+      lvl2Threshold: lvl2,
+      lvl3Threshold: lvl3,
+      message: `Progressive word clues unlock after ${lvl1} questions (${Math.max(0, lvl1 - (qCount || 0))} question${Math.max(0, lvl1 - (qCount || 0)) === 1 ? '' : 's'} remaining).`
+    };
+  }
+
+  const words = term.trim().split(/\s+/);
+  let level = 1;
+  let clue = "";
+  let desc = "";
+
+  if (qCount >= lvl3) {
+    level = 3;
+    desc = "Level 3 Clue: Vowels & Boundary Letters Revealed + Concept Nudge";
+    const vowels = new Set(['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U']);
+    clue = words.map(w => {
+      return w.split('').map((ch, idx) => {
+        if (/[^a-zA-Z0-9]/.test(ch)) return ch;
+        if (idx === 0 || idx === w.length - 1 || vowels.has(ch)) return ch;
+        return '_';
+      }).join(' ');
+    }).join('   ');
+  } else if (qCount >= lvl2) {
+    level = 2;
+    desc = "Level 2 Clue: First & Last Boundary Letters Revealed";
+    clue = words.map(w => {
+      return w.split('').map((ch, idx) => {
+        if (/[^a-zA-Z0-9]/.test(ch)) return ch;
+        if (idx === 0 || idx === w.length - 1) return ch;
+        return '_';
+      }).join(' ');
+    }).join('   ');
+  } else {
+    level = 1;
+    desc = "Level 1 Clue: Word Structure & Character Counts";
+    clue = words.map(w => {
+      return w.split('').map(ch => {
+        if (/[^a-zA-Z0-9]/.test(ch)) return ch;
+        return '_';
+      }).join(' ');
+    }).join('   ');
+  }
+
+  const wordLengths = words.map(w => `${w.replace(/[^a-zA-Z0-9]/g, '').length} letters`).join(', ');
+
+  return {
+    unlocked: true,
+    level,
+    qCount,
+    clue,
+    desc: `${desc} (${wordLengths})`,
+    lvl1Threshold: lvl1,
+    lvl2Threshold: lvl2,
+    lvl3Threshold: lvl3,
+    message: `Progressive word clue active (Level ${level})`
+  };
+}
+
+function updateClueUI(clueData) {
+  const container = document.getElementById('clueContainer');
+  if (!container) return;
+
+  const currentTerm = (state.term || state.secretTerm || (state.game && state.game.term) || "");
+  const currentQCount = state.qCount || 0;
+  const clue = clueData || state.currentClue || getProgressiveClues(currentTerm, currentQCount);
+  state.currentClue = clue;
+
+  if (!clue || !clue.unlocked) {
+    const needed = Math.max(1, 10 - currentQCount);
+    container.innerHTML = `
+      <div class="clue-box locked">
+        <div class="clue-header">
+          <span class="clue-title">🔒 Progressive Word Clues</span>
+          <span class="clue-tag lvl-1">Unlocks at Q10</span>
+        </div>
+        <div class="clue-desc">
+          Ask sharp questions! Progressive structural &amp; letter clues unlock if you exceed 10 questions (${needed} more question${needed === 1 ? '' : 's'} to unlock).
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const patternText = clue.pattern || clue.clue || '';
+  const descText = clue.hint || clue.desc || '';
+  const lvlClass = clue.level === 3 ? 'lvl-3' : (clue.level === 2 ? 'lvl-2' : 'lvl-1');
+  container.innerHTML = `
+    <div class="clue-box unlocked">
+      <div class="clue-header">
+        <span class="clue-title">💡 Progressive Word Clue Unlocked</span>
+        <span class="clue-tag ${lvlClass}">Level ${clue.level} of 3</span>
+      </div>
+      <div class="clue-pattern">${escapeHtml(patternText)}</div>
+      <div class="clue-desc">${escapeHtml(descText)}</div>
+      ${clue.conceptHint ? `<div class="clue-desc" style="color:var(--cyan); margin-top:5px; font-style:italic;"><strong>Oracle Nudge:</strong> ${escapeHtml(clue.conceptHint)}</div>` : ''}
+    </div>
+  `;
+}
+
+function formatTime(totalSeconds) {
+  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const mins = Math.floor(s / 60);
+  const secs = s % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Anti-Cheat & Warning Modal System
+function showWarningModal(title, message, buttonText, onDismiss) {
+  const existing = document.getElementById('vaultWarningModal');
+  if (existing) existing.remove();
+
+  const overlay = el(`
+    <div class="modal-overlay" id="vaultWarningModal">
+      <div class="modal-card">
+        <div style="font-size:42px; margin-bottom:8px;">⚠️</div>
+        <div class="modal-title">${escapeHtml(title)}</div>
+        <div class="modal-body">${escapeHtml(message)}</div>
+        <button class="modal-btn" id="modalDismissBtn">${escapeHtml(buttonText)}</button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#modalDismissBtn').onclick = () => {
+    overlay.remove();
+    if (onDismiss) onDismiss();
+  };
+}
+
+function disarmAntiCheatSystem() {
+  if (state.armTimer) {
+    clearTimeout(state.armTimer);
+    state.armTimer = null;
+  }
+  state.antiCheatArmed = false;
+  updateIntegrityBadgeUI();
+}
+
+function armAntiCheatSystem(delayMs = 2000) {
+  if (state.armTimer) {
+    clearTimeout(state.armTimer);
+    state.armTimer = null;
+  }
+  state.antiCheatArmed = false;
+  state.lastFullscreenTransitionAt = Date.now();
+  updateIntegrityBadgeUI();
+
+  state.armTimer = setTimeout(() => {
+    if (state.screen === "game") {
+      state.antiCheatArmed = true;
+      updateIntegrityBadgeUI();
+    }
+  }, delayMs);
+}
+
+function updateIntegrityBadgeUI() {
+  const badge = document.getElementById('examIntegrityBadge');
+  if (!badge) return;
+  if (!state.warningsEnabled) {
+    badge.style.display = 'none';
+    return;
+  }
+  badge.style.display = 'inline-flex';
+  if (state.antiCheatArmed) {
+    badge.className = 'integrity-badge active';
+    badge.innerHTML = `<span class="dot" style="width:7px; height:7px; border-radius:50%; background:#00e676; display:inline-block; margin-right:6px; box-shadow:0 0 6px #00e676;"></span><span>🛡️ Anti-Cheat Armed</span>`;
+  } else {
+    badge.className = 'integrity-badge arming';
+    badge.innerHTML = `<span class="dot" style="width:7px; height:7px; border-radius:50%; background:#ffb300; display:inline-block; margin-right:6px;"></span><span>⏳ Initializing Proctoring...</span>`;
+  }
+}
+
+function requestFullScreen(onSuccess) {
+  if (!state.fullScreenEnabled) {
+    if (onSuccess) onSuccess();
+    return;
+  }
+  if (document.fullscreenElement) {
+    state.lastFullscreenTransitionAt = Date.now();
+    armAntiCheatSystem(1500);
+    if (onSuccess) onSuccess();
+    return;
+  }
+  if (document.documentElement.requestFullscreen) {
+    state.lastFullscreenTransitionAt = Date.now();
+    disarmAntiCheatSystem();
+    document.documentElement.requestFullscreen()
+      .then(() => {
+        state.lastFullscreenTransitionAt = Date.now();
+        armAntiCheatSystem(2000);
+        if (onSuccess) onSuccess();
+      })
+      .catch((err) => {
+        console.log("Fullscreen request deferred to user gesture:", err);
+      });
+  }
+}
+
+function showFullscreenEntranceGate() {
+  if (document.getElementById('fullscreenGateModal') || document.fullscreenElement) return;
+
+  const overlay = el(`
+    <div class="modal-overlay" id="fullscreenGateModal" style="background: rgba(4, 8, 16, 0.95); z-index: 9999;">
+      <div class="modal-card gate-modal-card">
+        <div style="font-size:46px; margin-bottom:12px;">🖥️</div>
+        <div class="modal-title" style="color:var(--cyan); letter-spacing:1px;">FULL SCREEN EXAM MANDATE</div>
+        <div class="modal-body" style="font-size:14px; line-height:1.6; color:var(--text-dim); margin-bottom:22px;">
+          The host requires this exam session to be taken in Full Screen mode to ensure exam integrity. Click below to expand full screen and begin interrogating the Oracle.
+        </div>
+        <button class="modal-btn" id="enterFsGateBtn" style="background:var(--cyan); color:#0a1422; font-weight:700; width:100%; padding:13px 20px; cursor:pointer; font-size:13px;">
+          Expand Full Screen &amp; Start Exam
+        </button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#enterFsGateBtn').onclick = () => {
+    state.lastFullscreenTransitionAt = Date.now();
+    disarmAntiCheatSystem();
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen()
+        .then(() => {
+          overlay.remove();
+          armAntiCheatSystem(2000);
+        })
+        .catch(() => {
+          overlay.remove();
+          armAntiCheatSystem(2000);
+        });
+    } else {
+      overlay.remove();
+      armAntiCheatSystem(2000);
+    }
+  };
+}
+
+// Setup Global Anti-Cheat Event Listeners
+function initAntiCheatListeners() {
+  // 1. Copy Protection ("Thambi Thappu")
+  const handleCopy = (e) => {
+    if (state.screen === "game" && state.warningsEnabled && state.antiCheatArmed) {
+      e.preventDefault();
+      showWarningModal("Thambi Thappu", "Copying content or using clipboard options is strictly prohibited during the exam!", "Understand");
+    }
+  };
+
+  window.addEventListener('copy', handleCopy);
+  window.addEventListener('cut', handleCopy);
+  window.addEventListener('contextmenu', handleCopy);
+
+  // 2. Tab Switch & Escape / Fullscreen Exit Violation Handler
+  const handleViolation = (type) => {
+    if (state.screen !== "game" || !state.warningsEnabled || !state.antiCheatArmed) return;
+
+    if (type === "fullscreen" && !state.fullScreenEnabled) return;
+
+    // Ignore blur if within settling window of entering fullscreen or modal is open
+    if (type === "blur") {
+      if (Date.now() - state.lastFullscreenTransitionAt < 2500) return;
+      if (document.getElementById('vaultWarningModal') || document.getElementById('fullscreenGateModal')) return;
+    }
+
+    // Temporarily disarm during warning modal display
+    disarmAntiCheatSystem();
+
+    if (!state.tabSwitchWarnings) {
+      state.tabSwitchWarnings = 1;
+      const msg = state.fullScreenEnabled
+        ? "Switching tabs or leaving full screen is strictly prohibited! This is your ONLY warning. If you try to switch tabs or exit full screen again, your exam will be automatically submitted!"
+        : "Switching tabs or navigating away from the exam is prohibited! This is your ONLY warning. If you attempt this again, your exam will be automatically submitted!";
+
+      showWarningModal(
+        "EXAM INTEGRITY WARNING",
+        msg,
+        state.fullScreenEnabled ? "Return to Fullscreen" : "Return to Exam",
+        () => {
+          if (state.fullScreenEnabled) {
+            requestFullScreen(() => {
+              armAntiCheatSystem(2000);
+            });
+            armAntiCheatSystem(2500);
+          } else {
+            armAntiCheatSystem(1500);
+          }
+        }
+      );
+    } else {
+      // Second violation (After Fair Warning) -> PERMANENT ELIMINATION WITH STRICTLY 0 POINTS!
+      state.cheatingTerminated = true;
+      state.finalScore = 0; // Strictly 0 points penalty
+      disarmAntiCheatSystem();
+      if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+      }
+      if (document.exitFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      try {
+        fetch('/api/rooms/cheat-terminate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: state.code,
+            name: state.name,
+            reason: type === 'fullscreen' ? 'Left full screen after fair warning' : 'Switched tabs after fair warning'
+          })
+        }).catch(() => {});
+      } catch (e) {}
+      state.screen = "reveal";
+      render();
+    }
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.screen === "game" && state.antiCheatArmed) {
+      handleViolation("tab");
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (state.screen === "game" && state.fullScreenEnabled) {
+      if (!document.fullscreenElement) {
+        if (state.antiCheatArmed) {
+          handleViolation("fullscreen");
+        }
+      } else {
+        // Just entered fullscreen!
+        state.lastFullscreenTransitionAt = Date.now();
+        const gate = document.getElementById('fullscreenGateModal');
+        if (gate) gate.remove();
+      }
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    if (state.screen === "game" && state.antiCheatArmed) {
+      handleViolation("blur");
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (state.screen === "game" && state.warningsEnabled && (e.key === "Escape" || (e.altKey && e.key === "Tab"))) {
+      if (state.antiCheatArmed) {
+        e.preventDefault();
+        handleViolation("escape");
+      }
+    }
+  });
+
+  // Cross-tab synchronization
+  window.addEventListener('storage', (e) => {
+    if (state.code && e.key === `vault_room_${state.code}` && e.newValue) {
+      try {
+        const updated = JSON.parse(e.newValue);
+        let changed = false;
+        if (updated.fullScreenEnabled !== undefined && updated.fullScreenEnabled !== state.fullScreenEnabled) {
+          state.fullScreenEnabled = updated.fullScreenEnabled;
+          changed = true;
+        }
+        if (updated.warningsEnabled !== undefined && updated.warningsEnabled !== state.warningsEnabled) {
+          state.warningsEnabled = updated.warningsEnabled;
+          changed = true;
+        }
+        if (updated.showLeaderboard !== undefined && updated.showLeaderboard !== state.showLeaderboard) {
+          state.showLeaderboard = updated.showLeaderboard;
+          changed = true;
+        }
+        if (updated.timerSeconds !== undefined && updated.timerSeconds !== state.timerSeconds) {
+          state.timerSeconds = updated.timerSeconds;
+          changed = true;
+        }
+        if (changed) render();
+      } catch (err) {}
+    }
+  });
+}
+
+initAntiCheatListeners();
+
+function el(html){
+  const d=document.createElement('div');
+  d.innerHTML=html.trim();
+  return d.firstChild;
+}
+
+function genCode(){
+  const chars="ACDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c="";
+  for(let i=0;i<5;i++) c+=chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+
+function pick(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+async function callOracle(secretTerm, category, history, question, customApiKey){
+  // 1. Try server API route first if running via Express server (http://localhost:3000)
+  try {
+    const resp = await fetch('/api/oracle/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: state.code,
+        name: state.name,
+        question: question,
+        apiKey: customApiKey || state.apiKey
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.answer) return data.answer;
+    }
+  } catch(e) {}
+
+  // 2. Smart local evaluation fallback engine for Live Server (http://127.0.0.1:5500) & static execution
+  const qLower = question.toLowerCase().trim();
+  const termLower = secretTerm.toLowerCase().trim();
+  const catLower = (category || "").toLowerCase().trim();
+
+  // Check direct guess
+  const guessMatch = qLower.match(/is it\s+([^?.]+)/i);
+  const extractedGuess = guessMatch ? guessMatch[1].trim() : qLower;
+
+  if (extractedGuess === termLower || qLower.includes(termLower)) {
+    return `CORRECT! The term was ${secretTerm}.`;
+  }
+
+  // First letter / starting letter match (e.g. "Does the name start with C?")
+  const startLetterMatch = qLower.match(/start\w*\s+with\s+["']?([a-z])["']?/i) || qLower.match(/first\s+letter\s+["']?([a-z])["']?/i);
+  let isFirstLetterMatch = false;
+  let isFirstLetterMismatch = false;
+
+  if (startLetterMatch) {
+    const askedLetter = startLetterMatch[1].toLowerCase();
+    const firstChar = termLower[0].toLowerCase();
+    if (askedLetter === firstChar) {
+      isFirstLetterMatch = true;
+    } else {
+      isFirstLetterMismatch = true;
+    }
+  }
+
+  // Category membership check (e.g. "Is it a programming language?" for Go -> YES)
+  const isCategoryQuestion = (
+    (catLower.includes("program") || catLower.includes("language")) && (qLower.includes("programming language") || qLower.includes("a language") || qLower.includes("coding language")) ||
+    (catLower.includes("ui") || catLower.includes("ux") || catLower.includes("design")) && (qLower.includes("ui design") || qLower.includes("ux design") || qLower.includes("design system")) ||
+    (catLower.includes("author") || catLower.includes("creator")) && (qLower.includes("author") || qLower.includes("creator") || qLower.includes("person") || qLower.includes("human")) ||
+    (catLower.includes("cloud")) && (qLower.includes("cloud service") || qLower.includes("cloud platform") || qLower.includes("cloud tool")) ||
+    (catLower.includes("data") || catLower.includes("structure")) && (qLower.includes("data structure") && !qLower.includes("linear")) ||
+    (catLower.includes("company") || catLower.includes("mnc")) && (qLower.includes("company") || qLower.includes("corporation") || qLower.includes("firm")) ||
+    (catLower.includes("quote") || catLower.includes("slogan")) && (qLower.includes("quote") || qLower.includes("slogan") || qLower.includes("motto"))
+  );
+
+  // Sub-type Data Structure check (Linear vs Non-Linear)
+  const isLinearQuestion = qLower.includes("linear") && !qLower.includes("non-linear") && !qLower.includes("nonlinear");
+  const isNonLinearQuestion = qLower.includes("non-linear") || qLower.includes("nonlinear");
+  const linearTerms = ["linked list", "stack", "queue", "array", "hash table"];
+  const nonLinearTerms = ["graph", "binary tree", "tree", "trie", "heap", "red-black tree", "b-tree"];
+
+  let isDataStructureTypeMatch = false;
+  let isDataStructureTypeMismatch = false;
+
+  if (isLinearQuestion) {
+    if (linearTerms.includes(termLower)) isDataStructureTypeMatch = true;
+    else if (nonLinearTerms.includes(termLower)) isDataStructureTypeMismatch = true;
+  } else if (isNonLinearQuestion) {
+    if (nonLinearTerms.includes(termLower)) isDataStructureTypeMatch = true;
+    else if (linearTerms.includes(termLower)) isDataStructureTypeMismatch = true;
+  }
+
+  // Known trait mapping for 100% accurate factual evaluation
+  const TRAITS = {
+    "graph": ["node", "edge", "vertex", "vertices", "non linear", "nonlinear", "cycle", "adjacency", "dfs", "bfs", "directed", "undirected"],
+    "binary tree": ["root", "node", "left", "right", "traversal", "non linear", "nonlinear", "structure"],
+    "red-black tree": ["self balancing", "tree", "node", "color", "red", "black", "non linear"],
+    "trie": ["prefix tree", "string", "node", "non linear", "search"],
+    "heap": ["priority queue", "min heap", "max heap", "non linear", "tree"],
+    "cloudflare": ["cdn", "dns", "performance", "website performance", "speed", "ddos", "security", "edge", "workers", "ssl", "cloud", "caching", "firewall", "web performance"],
+    "kubernetes": ["container", "orchestration", "k8s", "google", "pods", "cloud"],
+    "docker": ["container", "image", "dockerfile", "virtualization", "cloud"],
+    "amazon s3": ["object storage", "bucket", "aws", "amazon", "storage", "cloud"],
+    "serverless": ["faas", "event driven", "lambda", "cloud"],
+    "aws lambda": ["serverless", "event driven", "aws", "amazon", "function", "cloud"],
+    "microservices": ["decoupled", "architecture", "services", "api", "cloud"],
+    "terraform": ["infrastructure as code", "iac", "hashicorp", "cloud"],
+    "load balancer": ["traffic", "distribution", "balancing", "proxy", "cloud"],
+    "iam policy": ["permissions", "roles", "security", "access control", "cloud"],
+    "go": ["google", "golang", "rob pike", "ken thompson", "compiled", "concurrency", "goroutine", "channel", "statically typed", "programming", "language"],
+    "c": ["bell labs", "dennis ritchie", "procedural", "low level", "pointer", "compiled", "programming", "language"],
+    "c++": ["bjarne stroustrup", "object oriented", "compiled", "stl", "cpp", "programming", "language"],
+    "javascript": ["html", "css", "web", "website", "webpage", "browser", "dom", "frontend", "scripting", "dynamic", "brendan eich", "node", "npm", "react", "vue", "angular", "v8", "programming", "language"],
+    "python": ["ai", "ml", "machine learning", "data science", "django", "flask", "pandas", "numpy", "interpreted", "dynamic", "object", "indentation", "guido van rossum", "script", "programming", "language"],
+    "typescript": ["html", "css", "web", "frontend", "microsoft", "typed", "javascript", "superset", "anders hejlsberg", "programming", "language"],
+    "rust": ["memory safe", "borrow", "ownership", "borrow checker", "mozilla", "graydon hoare", "no garbage", "garbage collection", "garbage collector", "cargo", "fast", "systems", "programming", "language"],
+    "java": ["james gosling", "sun microsystems", "jvm", "bytecode", "object oriented", "programming", "language"],
+    "kotlin": ["jetbrains", "android", "jvm", "concise", "programming", "language"],
+    "swift": ["apple", "ios", "mac", "chris lattner", "compiled", "programming", "language"],
+    "haskell": ["functional", "pure", "lazy", "monad", "statically typed", "programming", "language"],
+    "guido van rossum": ["python", "dutch", "creator", "author", "bdfl", "benevolent"],
+    "brendan eich": ["javascript", "js", "mozilla", "brave", "creator", "author"],
+    "dennis ritchie": ["c", "unix", "bell labs", "creator", "author"],
+    "bjarne stroustrup": ["c++", "cpp", "creator", "author", "danish"],
+    "james gosling": ["java", "sun microsystems", "creator", "author"],
+    "rob pike": ["go", "golang", "google", "creator", "author", "utf-8"],
+    "linked list": ["pointer", "node", "linear", "head", "tail", "structure"],
+    "google": ["mountain view", "alphabet", "search", "sundar", "android", "company", "mnc"],
+    "microsoft": ["redmond", "windows", "azure", "bill gates", "satya", "company", "mnc"],
+    "apple": ["cupertino", "steve jobs", "iphone", "mac", "tim cook", "company", "mnc"],
+    "move fast and break things": ["mark zuckerberg", "facebook", "meta", "slogan", "motto", "quote"],
+    "stay hungry, stay foolish": ["steve jobs", "stanford", "speech", "quote"],
+    "organize the world's information": ["google", "mission", "search", "quote"],
+    "don't be evil": ["google", "code", "conduct", "quote"],
+    "think different": ["apple", "jobs", "slogan", "quote"]
+  };
+
+  const termTraits = TRAITS[termLower] || [];
+  const isTraitMatch = termTraits.some(t => qLower.includes(t));
+
+  const termKeywords = termLower.split(/\s+/).filter(k => k.length >= 2);
+  const isKeywordMatch = termKeywords.some(k => qLower.includes(k));
+
+  if (isFirstLetterMatch || isDataStructureTypeMatch || isCategoryQuestion || isTraitMatch || isKeywordMatch) {
+    return "Yes";
+  }
+
+  if (isFirstLetterMismatch || isDataStructureTypeMismatch) {
+    return "No";
+  }
+
+  if (qLower.includes("type") || qLower.includes("category") || qLower.includes("concept") || qLower.includes("feature")) {
+    return "Maybe";
+  }
+
+  return "No";
+}
+
+function badgeFor(text){
+  const t = text.toLowerCase();
+  if(t.startsWith("yes") || t.startsWith("correct")) return "yes";
+  if(t.startsWith("no") && !t.startsWith("not")) return "no";
+  if(t.startsWith("maybe") || t.startsWith("partially")) return "maybe";
+  if(t.startsWith("invalid") || t.startsWith("irrelevant")) return "other";
+  return "other";
+}
+
+function oracleAnswerHtml(text){
+  const cls = badgeFor(text);
+  const lower = text.toLowerCase();
+  let icon = '—';
+  let label = text.trim();
+  let detail = '';
+
+  if (cls === 'yes') {
+    icon = '✓';
+    label = '';
+  } else if (cls === 'no') {
+    icon = '✗';
+    label = '';
+  } else if (cls === 'maybe') {
+    icon = '?';
+    label = 'MAYBE';
+    const firstBreak = text.search(/[.,!—]/);
+    detail = firstBreak > 0 ? text.substring(firstBreak + 1).trim() : '';
+  } else {
+    icon = '—';
+    const firstBreak = text.search(/[.,!—]/);
+    label = firstBreak > 0 ? text.substring(0, firstBreak).trim().toUpperCase() : text.toUpperCase();
+    detail = firstBreak > 0 ? text.substring(firstBreak + 1).trim() : '';
+  }
+
+  if (detail && detail.toUpperCase() === label) {
+    detail = '';
+  }
+
+  return `<div class="oracle-answer ${cls}"><span class="icon">${icon}</span>${escapeHtml(label)}${detail ? '<div class="oracle-detail">' + escapeHtml(detail) + '</div>' : ''}</div>`;
+}
+
+function placeholderForCategory(cat){
+  const map = {
+    'Programming Languages': 'e.g. Is it an object-oriented language?',
+    'UI/UX Designs': 'e.g. Is it a layout or visual styling concept?',
+    'Language Authors': 'e.g. Did this author create C or Python?',
+    'Cloud': 'e.g. Is it a container orchestration tool?',
+    'Data Structures': 'e.g. Is it a tree-based structure?',
+    'MNC Company Details': 'e.g. Is it headquartered in Mountain View?',
+    'MNC Quotes': 'e.g. Was this quote coined by Steve Jobs?'
+  };
+  return map[cat] || 'e.g. Ask a property about the secret term';
+}
+
+async function saveResult(code, name, questionsUsed, solved, score){
+  try{
+    await window.storage.set(`result:${code}:${name}:${Date.now()}`, JSON.stringify({name, questionsUsed, solved, score, ts:Date.now()}), true);
+  }catch(e){
+    console.error("save result failed", e);
+  }
+}
+
+async function getResults(code){
+  try{
+    const resp = await fetch(`/api/rooms/${code}/leaderboard`);
+    if(resp.ok){
+      const data = await resp.json();
+      if(Array.isArray(data.leaderboard) && data.leaderboard.length > 0){
+        return data.leaderboard;
+      }
+    }
+  }catch(e){}
+
+  try{
+    const list = await window.storage.list(`result:${code}:`, true);
+    if(!list || !list.keys) return [];
+    const out=[];
+    for(const k of list.keys){
+      try{
+        const r = await window.storage.get(k, true);
+        if(r) out.push(JSON.parse(r.value));
+      }catch(e){}
+    }
+    out.sort((a,b)=> (b.score || 0) - (a.score || 0));
+    return out;
+  }catch(e){
+    return [];
+  }
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = "";
+  app.appendChild(el(`<div class="wrap"></div>`));
+  const wrap = app.firstChild;
+
+  if(state.screen === "role") return renderRole(wrap);
+  if(state.screen === "admin") return renderAdmin(wrap);
+  if(state.screen === "join") return renderJoin(wrap);
+  if(state.screen === "game") return renderGame(wrap);
+}
+
+function header(wrap, eyebrow, title, sub){
+  wrap.appendChild(el(`
+    <div class="eyebrow"><span class="dot"></span>${eyebrow}</div>
+    <h1>${title}</h1>
+    <div class="sub">${sub}</div>
+  `));
+}
+
+function renderRole(wrap){
+  header(wrap, "CSE DEPT · MIND GAME", "Crack the Vault", "An AI Oracle is holding a secret technical term. It will never say it outright — only answer narrow questions about its properties. Ask sharp questions, think laterally, guess the term before you run out of moves.");
+  
+  const grid = el(`<div class="role-grid"></div>`);
+  const adminCard = el(`
+    <div class="role-card" id="pickAdmin">
+      <div class="tag">Host</div>
+      <h3>Admin</h3>
+      <p>Create a vault session, generate a hidden secret term, and share the room code with participants. Watch the live leaderboard.</p>
+    </div>`);
+  const partCard = el(`
+    <div class="role-card" id="pickJoin">
+      <div class="tag">Enter</div>
+      <h3>Participant</h3>
+      <p>Join with a room code, then interrogate the Oracle with yes/no-style questions. ${MAX_QUESTIONS} questions max — crack it fast for a higher score.</p>
+    </div>`);
+  
+  grid.appendChild(adminCard);
+  grid.appendChild(partCard);
+  wrap.appendChild(grid);
+
+  adminCard.onclick = ()=>{ state = {screen:"admin", step:"setup"}; render(); };
+  partCard.onclick = ()=>{ state = {screen:"join"}; render(); };
+}
+
+function renderAdmin(wrap){
+  wrap.appendChild(el(`<span class="backlink" id="back">&larr; back</span>`));
+  wrap.querySelector('#back').onclick = ()=>{ state={screen:"role"}; render(); };
+
+  header(wrap, "ADMIN CONSOLE", "Set Up a Vault", "Configure exam duration, participant security policies, and generate a secret room.");
+
+  // Resume Active Room Banner (Leaderboard Persistence)
+  const savedActive = localStorage.getItem('vault_admin_active_room');
+  if (savedActive && (!state.step || state.step === "setup")) {
+    try {
+      const activeData = JSON.parse(savedActive);
+      if (activeData && activeData.code) {
+        const activeCard = el(`
+          <div class="active-room-card">
+            <div class="active-room-info">
+              <div class="active-room-lbl">
+                <span class="status-dot" style="width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; box-shadow:0 0 8px var(--accent);"></span>
+                ACTIVE VAULT SESSION IN PROGRESS
+              </div>
+              <div class="active-room-code">
+                Room Code: <strong style="font-family:var(--mono); color:var(--cyan); letter-spacing:0.1em;">${escapeHtml(activeData.code)}</strong> · ${escapeHtml(activeData.roomType || activeData.cat || 'CS Vault')}
+              </div>
+              <div class="hint" style="margin:2px 0 0 0; color:var(--text-dim);">
+                Live candidate marks and status are running. Resume anytime.
+              </div>
+            </div>
+            <div class="row" style="gap:8px;">
+              <button id="resumeActiveBtn">▶ Resume Leaderboard</button>
+              <button class="ghost small" id="discardActiveBtn">Dismiss</button>
+            </div>
+          </div>
+        `);
+        wrap.appendChild(activeCard);
+
+        activeCard.querySelector('#resumeActiveBtn').onclick = () => {
+          state = {
+            screen: "admin",
+            step: "live",
+            code: activeData.code,
+            cat: activeData.roomType || activeData.cat || "Programming Fundamentals",
+            term: activeData.term || activeData.generatedTerm || "",
+            timerSeconds: activeData.timerSeconds || 180,
+            fullScreenEnabled: activeData.fullScreenEnabled !== undefined ? activeData.fullScreenEnabled : true,
+            warningsEnabled: activeData.warningsEnabled !== undefined ? activeData.warningsEnabled : true
+          };
+          render();
+        };
+
+        activeCard.querySelector('#discardActiveBtn').onclick = () => {
+          localStorage.removeItem('vault_admin_active_room');
+          activeCard.remove();
+        };
+      }
+    } catch (e) {}
+  }
+
+  if(!state.step || state.step === "setup"){
+    const panel = el(`
+      <div class="panel">
+        <label>1. Select Category</label>
+        <select id="cat">
+          ${Object.keys(CATEGORIES).map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+
+        <label style="margin-top:20px;">2. Exam Duration Allotment</label>
+        <div class="preset-chips" id="presetChips">
+          <button type="button" class="preset-chip ${state.timerSeconds === 60 ? 'active' : ''}" data-sec="60">1 Min (60s)</button>
+          <button type="button" class="preset-chip ${state.timerSeconds === 180 ? 'active' : ''}" data-sec="180">3 Mins (180s)</button>
+          <button type="button" class="preset-chip ${state.timerSeconds === 300 ? 'active' : ''}" data-sec="300">5 Mins (300s)</button>
+          <button type="button" class="preset-chip ${state.timerSeconds === 600 ? 'active' : ''}" data-sec="600">10 Mins (600s)</button>
+          <button type="button" class="preset-chip ${state.timerSeconds === 900 ? 'active' : ''}" data-sec="900">15 Mins (900s)</button>
+          <button type="button" class="preset-chip ${state.timerSeconds === 1800 ? 'active' : ''}" data-sec="1800">30 Mins (1800s)</button>
+        </div>
+        <div class="row" style="align-items:center;">
+          <div style="flex:1; max-width:240px;">
+            <input type="number" id="timerSeconds" min="10" max="3600" value="${state.timerSeconds || 180}" />
+          </div>
+          <div class="hint" style="margin:0;">Exam auto-submits &amp; exits participant screen when this allotted duration expires.</div>
+        </div>
+
+        <label style="margin-top:24px;">3. Participant Page Controls &amp; Policies</label>
+        <div class="controls-grid">
+          <div class="toggle-card ${state.fullScreenEnabled ? 'active' : ''}" id="cardFs">
+            <div class="toggle-header">
+              <span class="toggle-title">🖥️ Full Screen</span>
+              <label class="switch">
+                <input type="checkbox" id="toggleFullScreen" ${state.fullScreenEnabled ? 'checked' : ''} />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="toggle-desc">Enforces full screen mode when participants enter the interrogation vault.</div>
+            <div class="toggle-status ${state.fullScreenEnabled ? 'on' : 'off'}">${state.fullScreenEnabled ? '● Fullscreen Enforced' : '○ Windowed Allowed'}</div>
+          </div>
+
+          <div class="toggle-card ${state.warningsEnabled ? 'active' : ''}" id="cardWarn">
+            <div class="toggle-header">
+              <span class="toggle-title">⚠️ Anti-Cheat Warnings</span>
+              <label class="switch">
+                <input type="checkbox" id="toggleWarnings" ${state.warningsEnabled ? 'checked' : ''} />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="toggle-desc">Intercepts copy/clipboard actions ("Thambi Thappu") and warns/submits on tab-switch &amp; Escape.</div>
+            <div class="toggle-status ${state.warningsEnabled ? 'on' : 'off'}">${state.warningsEnabled ? '● Warnings Active' : '○ Warnings Disabled'}</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:28px;">
+          <button id="genBtn">Generate Secret &amp; Create Room</button>
+        </div>
+      </div>
+    `);
+    wrap.appendChild(panel);
+
+    // Preset chips click
+    panel.querySelectorAll('.preset-chip').forEach(btn => {
+      btn.onclick = () => {
+        const sec = parseInt(btn.getAttribute('data-sec'), 10);
+        state.timerSeconds = sec;
+        panel.querySelector('#timerSeconds').value = sec;
+        panel.querySelectorAll('.preset-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      };
+    });
+
+    panel.querySelector('#timerSeconds').oninput = (e) => {
+      const v = parseInt(e.target.value, 10);
+      if (!isNaN(v) && v > 0) {
+        state.timerSeconds = v;
+        panel.querySelectorAll('.preset-chip').forEach(b => {
+          b.classList.toggle('active', parseInt(b.getAttribute('data-sec'), 10) === v);
+        });
+      }
+    };
+
+    // Toggle event handlers
+    const toggleFs = panel.querySelector('#toggleFullScreen');
+    toggleFs.onchange = (e) => {
+      state.fullScreenEnabled = e.target.checked;
+      panel.querySelector('#cardFs').classList.toggle('active', state.fullScreenEnabled);
+      panel.querySelector('#cardFs .toggle-status').className = `toggle-status ${state.fullScreenEnabled ? 'on' : 'off'}`;
+      panel.querySelector('#cardFs .toggle-status').textContent = state.fullScreenEnabled ? '● Fullscreen Enforced' : '○ Windowed Allowed';
+    };
+
+    const toggleWarn = panel.querySelector('#toggleWarnings');
+    toggleWarn.onchange = (e) => {
+      state.warningsEnabled = e.target.checked;
+      panel.querySelector('#cardWarn').classList.toggle('active', state.warningsEnabled);
+      panel.querySelector('#cardWarn .toggle-status').className = `toggle-status ${state.warningsEnabled ? 'on' : 'off'}`;
+      panel.querySelector('#cardWarn .toggle-status').textContent = state.warningsEnabled ? '● Warnings Active' : '○ Warnings Disabled';
+    };
+
+    panel.querySelector('#genBtn').onclick = async ()=>{
+      const cat = panel.querySelector('#cat').value;
+      const term = pick(CATEGORIES[cat] || CATEGORIES["Programming Languages"]);
+      const timerSecVal = parseInt(panel.querySelector('#timerSeconds').value, 10) || state.timerSeconds || 180;
+      state.timerSeconds = Math.max(10, Math.min(3600, timerSecVal));
+      let code = genCode();
+      
+      // Try backend server API if active
+      try {
+        const resp = await fetch('/api/rooms/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomType: cat,
+            termMode: 'manual',
+            manualTerm: term,
+            timerSeconds: state.timerSeconds,
+            fullScreenEnabled: state.fullScreenEnabled,
+            warningsEnabled: state.warningsEnabled
+          })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.code) code = data.code;
+        }
+      } catch(e) {}
+
+      try{
+        const sessionPayload = JSON.stringify({
+          code, 
+          category: cat, 
+          roomType: cat, 
+          term, 
+          timerSeconds: state.timerSeconds,
+          fullScreenEnabled: state.fullScreenEnabled,
+          warningsEnabled: state.warningsEnabled,
+          createdAt: Date.now(), 
+          status: "active"
+        });
+        await window.storage.set(`session:${code}`, sessionPayload, true);
+        localStorage.setItem(`vault_room_${code}`, sessionPayload);
+        localStorage.setItem('vault_admin_active_room', JSON.stringify({
+          code,
+          roomType: cat,
+          cat,
+          term,
+          timerSeconds: state.timerSeconds,
+          fullScreenEnabled: state.fullScreenEnabled,
+          warningsEnabled: state.warningsEnabled
+        }));
+      }catch(e){
+        console.error(e);
+      }
+      state = {
+        screen: "admin", 
+        step: "live", 
+        code, 
+        cat, 
+        term,
+        timerSeconds: state.timerSeconds,
+        fullScreenEnabled: state.fullScreenEnabled,
+        warningsEnabled: state.warningsEnabled
+      };
+      render();
+    };
+    return;
+  }
+
+  if(state.step === "live"){
+    localStorage.setItem('vault_admin_active_room', JSON.stringify({
+      code: state.code,
+      roomType: state.cat,
+      cat: state.cat,
+      term: state.term,
+      timerSeconds: state.timerSeconds,
+      fullScreenEnabled: state.fullScreenEnabled,
+      warningsEnabled: state.warningsEnabled
+    }));
+
+    const panel = el(`
+      <div class="panel">
+        <label>Room Code — share this with participants</label>
+        <div class="code-display">${state.code}</div>
+        <div class="row" style="justify-content:space-between; margin-bottom:14px;">
+          <div>
+            <div class="hint">Category: <strong style="color:var(--text)">${state.cat}</strong></div>
+            <div class="hint">Secret term (hidden from participants): <strong style="color:var(--cyan)">${state.term}</strong></div>
+          </div>
+          <button class="ghost small" id="newRoom">New Room</button>
+        </div>
+
+        <!-- Real-Time Host Exam Controls Toolbar -->
+        <div class="host-controls-panel">
+          <div class="host-controls-title">
+            <span>⚡ Host Exam Controls (Real-Time Participant Overrides)</span>
+            <span style="color:var(--text-dim); font-size:10.5px;">Live Sync</span>
+          </div>
+          <div class="host-actions-row">
+            <button class="action-toggle-btn ${state.fullScreenEnabled ? 'active' : ''}" id="liveToggleFs">
+              <span class="state-dot"></span>
+              🖥️ Full Screen: <strong>${state.fullScreenEnabled ? 'Enforced' : 'Disabled'}</strong>
+            </button>
+            <button class="action-toggle-btn ${state.warningsEnabled ? 'active' : ''}" id="liveToggleWarn">
+              <span class="state-dot"></span>
+              ⚠️ Warning Lock: <strong>${state.warningsEnabled ? 'Active' : 'Disabled'}</strong>
+            </button>
+            <div class="extend-time-group">
+              <span>Allotted: <strong style="color:var(--accent);" id="liveAllottedTimeDisplay">${formatTime(state.timerSeconds)}</strong></span>
+              <button class="ghost small" id="add1mBtn" title="Allot +1 minute to participants">+1m</button>
+              <button class="ghost small" id="add2mBtn" title="Allot +2 minutes to participants">+2m</button>
+              <button class="ghost small" id="add5mBtn" title="Allot +5 minutes to participants">+5m</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+    wrap.appendChild(panel);
+
+    panel.querySelector('#newRoom').onclick = ()=>{ 
+      if (state.adminLbInterval) clearInterval(state.adminLbInterval);
+      state={screen:"admin", step:"setup"}; 
+      render(); 
+    };
+
+    wrap.querySelector('#back').onclick = ()=>{ 
+      if (state.adminLbInterval) clearInterval(state.adminLbInterval);
+      state={screen:"role"}; 
+      render(); 
+    };
+
+    async function sendAdminSettingsUpdate(updates) {
+      Object.assign(state, updates);
+
+      // Save to localStorage and storage
+      const localKey = `vault_room_${state.code}`;
+      const localData = localStorage.getItem(localKey);
+      if (localData) {
+        try {
+          const parsed = JSON.parse(localData);
+          Object.assign(parsed, updates);
+          const serialized = JSON.stringify(parsed);
+          localStorage.setItem(localKey, serialized);
+          await window.storage.set(`session:${state.code}`, serialized, true);
+        } catch (err) {}
+      }
+
+      try {
+        await fetch(`/api/rooms/${state.code}/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+      } catch (e) {}
+
+      updateToolbarUI();
+    }
+
+    function updateToolbarUI() {
+      const fsBtn = panel.querySelector('#liveToggleFs');
+      if (fsBtn) {
+        fsBtn.className = `action-toggle-btn ${state.fullScreenEnabled ? 'active' : ''}`;
+        fsBtn.innerHTML = `<span class="state-dot"></span>🖥️ Full Screen: <strong>${state.fullScreenEnabled ? 'Enforced' : 'Disabled'}</strong>`;
+      }
+      const warnBtn = panel.querySelector('#liveToggleWarn');
+      if (warnBtn) {
+        warnBtn.className = `action-toggle-btn ${state.warningsEnabled ? 'active' : ''}`;
+        warnBtn.innerHTML = `<span class="state-dot"></span>⚠️ Warning Lock: <strong>${state.warningsEnabled ? 'Active' : 'Disabled'}</strong>`;
+      }
+      const timeDisplay = panel.querySelector('#liveAllottedTimeDisplay');
+      if (timeDisplay) {
+        timeDisplay.textContent = formatTime(state.timerSeconds);
+      }
+    }
+
+    panel.querySelector('#liveToggleFs').onclick = () => {
+      sendAdminSettingsUpdate({ fullScreenEnabled: !state.fullScreenEnabled });
+    };
+    panel.querySelector('#liveToggleWarn').onclick = () => {
+      sendAdminSettingsUpdate({ warningsEnabled: !state.warningsEnabled });
+    };
+    panel.querySelector('#add1mBtn').onclick = () => {
+      const nextTime = (state.timerSeconds || 180) + 60;
+      sendAdminSettingsUpdate({ timerSeconds: nextTime, addSeconds: 60 });
+    };
+    panel.querySelector('#add2mBtn').onclick = () => {
+      const nextTime = (state.timerSeconds || 180) + 120;
+      sendAdminSettingsUpdate({ timerSeconds: nextTime, addSeconds: 120 });
+    };
+    panel.querySelector('#add5mBtn').onclick = () => {
+      const nextTime = (state.timerSeconds || 180) + 300;
+      sendAdminSettingsUpdate({ timerSeconds: nextTime, addSeconds: 300 });
+    };
+
+    // Dedicated Live Leaderboard for Admin Console
+    const lbPanel = el(`
+      <div class="panel leaderboard-panel" style="margin-top:20px;">
+        <div class="lb-header-row">
+          <div class="lb-title">
+            <span class="dot" style="width:7px; height:7px; background:var(--cyan); border-radius:50%; box-shadow:0 0 8px var(--cyan); display:inline-block;"></span>
+            🏆 Live Candidate Leaderboard (Admin Console)
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-family:var(--mono); font-size:10px; color:var(--text-dim); text-transform:uppercase;">Live Polling Active</span>
+            <button class="ghost small" id="refresh">Refresh</button>
+          </div>
+        </div>
+
+        <div class="admin-stats-bar">
+          <div class="admin-stat-card">
+            <div class="admin-stat-num" id="statTotalJoined">0</div>
+            <div class="admin-stat-lbl">Participants Joined</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-num" id="statCracked" style="color:var(--cyan);">0</div>
+            <div class="admin-stat-lbl">Vaults Cracked</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-num" id="statTopScore" style="color:#eab308;">0</div>
+            <div class="admin-stat-lbl">Top Score</div>
+          </div>
+        </div>
+
+        <table class="lb-table" id="lbTable">
+          <thead>
+            <tr>
+              <th style="width:48px;">Rank</th>
+              <th>Participant</th>
+              <th>Status</th>
+              <th>Questions Used</th>
+              <th style="text-align:right;">Marks / Score</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="5" class="loading">No participant submissions yet.</td></tr></tbody>
+        </table>
+      </div>
+    `);
+    wrap.appendChild(lbPanel);
+
+    if (state.adminLbInterval) {
+      clearInterval(state.adminLbInterval);
+    }
+
+    const refresh = async ()=>{
+      const results = await getResults(state.code);
+      const tbody = lbPanel.querySelector('tbody');
+      const totalEl = lbPanel.querySelector('#statTotalJoined');
+      const crackedEl = lbPanel.querySelector('#statCracked');
+      const topScoreEl = lbPanel.querySelector('#statTopScore');
+
+      if(!results || results.length===0){
+        tbody.innerHTML = `<tr><td colspan="5" class="loading">No participant submissions yet.</td></tr>`;
+        if (totalEl) totalEl.textContent = '0';
+        if (crackedEl) crackedEl.textContent = '0';
+        if (topScoreEl) topScoreEl.textContent = '0';
+        return;
+      }
+
+      const sorted = [...results].sort((a,b) => (b.score || 0) - (a.score || 0));
+      const crackedCount = sorted.filter(r => r.solved || r.status === 'cracked').length;
+      const topScore = sorted[0]?.score || 0;
+
+      if (totalEl) totalEl.textContent = sorted.length;
+      if (crackedEl) crackedEl.textContent = crackedCount;
+      if (topScoreEl) topScoreEl.textContent = topScore;
+
+      tbody.innerHTML = sorted.slice(0,25).map((r,i)=>{
+        const rankBadge = i === 0 ? `<span class="rank-badge gold">1</span>` : (i === 1 ? `<span class="rank-badge silver">2</span>` : (i === 2 ? `<span class="rank-badge bronze">3</span>` : `<span class="rank-badge">${i+1}</span>`));
+        const isFinished = Boolean(r.isFinished || r.status === "Finished" || r.solved || r.status === "cracked" || r.timedOut || r.status === "timeout" || r.cheatingTerminated || (r.qCount >= MAX_QUESTIONS));
+        let statusPill = '';
+        if (isFinished) {
+          let sub = 'Done';
+          if (r.solved || r.status === 'cracked') sub = 'Cracked';
+          else if (r.timedOut || r.status === 'timeout') sub = 'Timeout';
+          else if (r.cheatingTerminated) sub = 'Violated';
+          else if (r.qCount >= MAX_QUESTIONS) sub = 'Max Qs';
+          statusPill = `<span class="status-pill finished">✓ Finished (${sub})</span>`;
+        } else {
+          statusPill = `<span class="status-pill ongoing"><span class="status-dot"></span>Ongoing</span>`;
+        }
+        return `
+          <tr class="lb-row">
+            <td>${rankBadge}</td>
+            <td><strong>${escapeHtml(r.name)}</strong></td>
+            <td>${statusPill}</td>
+            <td>${r.questionsUsed !== undefined ? r.questionsUsed : (r.qCount || 0)} / ${MAX_QUESTIONS}</td>
+            <td style="text-align:right; font-weight:700; color:var(--cyan); font-size:13px;">${r.score || 0} pts</td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    lbPanel.querySelector('#refresh').onclick = refresh;
+    refresh();
+
+    // Auto-refresh leaderboard every 2.5s while on Admin Live screen
+    state.adminLbInterval = setInterval(refresh, 2500);
+  }
+}
+
+function renderJoin(wrap){
+  wrap.appendChild(el(`<span class="backlink" id="back">&larr; back</span>`));
+  wrap.querySelector('#back').onclick = ()=>{ state={screen:"role"}; render(); };
+
+  header(wrap, "PARTICIPANT ENTRY", "Enter the Vault", "You'll get "+MAX_QUESTIONS+" questions to figure out the secret technical term. Ask about properties, behavior, and category — not encodings or tricks, the Oracle won't fall for those.");
+
+  const panel = el(`
+    <div class="panel">
+      <label>Your Name</label>
+      <input type="text" id="name" placeholder="e.g. Priya" />
+
+      <label>Room Code</label>
+      <input type="text" id="code" placeholder="e.g. K7QXZ" style="text-transform:uppercase;" />
+
+      <label>API Key</label>
+      <input type="password" id="pApiKey" placeholder="e.g. AQ.Ab8RN6K..." value="${escapeHtml(state.apiKey||'')}" />
+
+      <div class="row" style="margin-top:16px;">
+        <button id="joinBtn">Join Room</button>
+      </div>
+      <div class="error-msg" id="err" style="display:none;"></div>
+    </div>
+  `);
+  wrap.appendChild(panel);
+
+  panel.querySelector('#joinBtn').onclick = async ()=>{
+    const name = panel.querySelector('#name').value.trim();
+    const code = panel.querySelector('#code').value.trim().toUpperCase();
+    const apiKey = panel.querySelector('#pApiKey').value.trim();
+    state.apiKey = apiKey;
+    if (apiKey) {
+      localStorage.setItem('participant_api_key', apiKey);
+    }
+    const errBox = panel.querySelector('#err');
+    errBox.style.display="none";
+
+    if(!name || !code || !apiKey){
+      errBox.style.display="block";
+      errBox.textContent="Please enter your name, room code, and API key to join.";
+      return;
+    }
+
+    // Try server API first if running with backend
+    try {
+      const resp = await fetch('/api/rooms/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, name })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        state = {
+          screen:"game", 
+          code: data.code, 
+          name: data.participant.name, 
+          category: data.roomType, 
+          term: "", 
+          history: data.participant.history || [], 
+          qCount: data.participant.qCount || 0, 
+          solved: data.participant.solved || false,
+          fullScreenEnabled: data.fullScreenEnabled ?? true,
+          warningsEnabled: data.warningsEnabled ?? true,
+          showLeaderboard: data.showLeaderboard ?? false,
+          timerSeconds: data.timerSeconds || 180,
+          gameStartTime: Date.now(),
+          timedOut: false,
+          leaderboard: data.leaderboard || []
+        };
+        render();
+        return;
+      }
+    } catch(e) {}
+
+    // Fallback to storage / localStorage
+    try{
+      let res = await window.storage.get(`session:${code}`, true);
+      if (!res || !res.value) {
+        const localVault = localStorage.getItem(`vault_room_${code}`);
+        if (localVault) {
+          res = { value: localVault };
+        }
+      }
+      if(!res || !res.value){
+        throw new Error("not found");
+      }
+      const session = JSON.parse(res.value);
+      const cat = session.category || session.roomType || "Programming Languages";
+      state = {
+        screen:"game", 
+        code, 
+        name, 
+        category:cat, 
+        term:session.term, 
+        history:[], 
+        qCount:0, 
+        solved:false,
+        fullScreenEnabled: session.fullScreenEnabled ?? true,
+        warningsEnabled: session.warningsEnabled ?? true,
+        showLeaderboard: session.showLeaderboard ?? false,
+        timerSeconds: session.timerSeconds || 180,
+        gameStartTime: Date.now(),
+        timedOut: false,
+        leaderboard: []
+      };
+      render();
+    }catch(e){
+      errBox.style.display="block";
+      errBox.textContent="Room not found. Double-check the code with your host.";
+    }
+  };
+}
+
+function renderGame(wrap){
+  // Ensure anti-cheat is initially disarmed while page opens
+  disarmAntiCheatSystem();
+
+  if (state.fullScreenEnabled) {
+    if (document.fullscreenElement) {
+      armAntiCheatSystem(2000);
+    } else {
+      requestFullScreen(() => {
+        const gate = document.getElementById('fullscreenGateModal');
+        if (gate) gate.remove();
+      });
+      setTimeout(() => {
+        if (state.screen === "game" && state.fullScreenEnabled && !document.fullscreenElement) {
+          showFullscreenEntranceGate();
+        } else if (state.screen === "game") {
+          armAntiCheatSystem(2000);
+        }
+      }, 350);
+    }
+  } else {
+    armAntiCheatSystem(2000);
+  }
+
+  // Clear existing timer if any
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+
+  state.gameStartTime = state.gameStartTime || Date.now();
+  const getRemainingTime = () => {
+    const elapsed = Math.floor((Date.now() - state.gameStartTime) / 1000);
+    return Math.max(0, (state.timerSeconds || 180) - elapsed);
+  };
+
+  const s = state;
+  header(wrap, `ROOM ${s.code} · ${s.category}`, "Interrogate the Oracle", `${s.name}, ask one question at a time. ${MAX_QUESTIONS - s.qCount} of ${MAX_QUESTIONS} questions remaining.`);
+
+  const remaining = MAX_QUESTIONS - s.qCount;
+  const pct = Math.max(0, Math.min(1, s.qCount / MAX_QUESTIONS));
+  const filled = Math.round((s.qCount / MAX_QUESTIONS) * 20);
+  const empty = 20 - filled;
+  const progressBlocks = '█'.repeat(filled) + '░'.repeat(empty);
+
+  const initialTimeLeft = getRemainingTime();
+
+  const dialPanel = el(`
+    <div class="panel">
+      <!-- Host-Allotted Exam Time & Proctoring Status Bar -->
+      <div class="exam-status-bar">
+        <div class="allotted-time-badge" id="examAllottedBadge" style="margin-bottom:0;">
+          <span class="dot"></span>
+          <span>Host-Allotted Exam Time: <strong id="examAllottedDisplay">${formatTime(state.timerSeconds || 180)}</strong></span>
+          <span style="opacity:0.4;">|</span>
+          <span>Time Remaining: <strong id="examTimerCountdown" style="color:${initialTimeLeft <= 30 ? 'var(--danger)' : 'var(--accent)'}">${formatTime(initialTimeLeft)}</strong></span>
+        </div>
+        ${state.warningsEnabled ? `
+          <div class="integrity-badge arming" id="examIntegrityBadge">
+            <span class="dot" style="width:7px; height:7px; border-radius:50%; background:#ffb300; display:inline-block; margin-right:6px;"></span>
+            <span>⏳ Initializing Proctoring...</span>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="dial-wrap">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="27" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="6" stroke-dasharray="${2*Math.PI*27}" stroke-dashoffset="${2*Math.PI*27*(1-pct)}" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        </svg>
+        <div class="dial-stats">
+          <div class="n">${remaining}</div>
+          <div class="lbl">Questions Remaining</div>
+        </div>
+      </div>
+      <div class="progress-row">
+        <span class="pcount">${s.qCount} / ${MAX_QUESTIONS}</span>
+        <span class="progress-bar">${progressBlocks}</span>
+      </div>
+
+      <!-- Progressive Word Clues Container (Unlocks after 10 questions) -->
+      <div id="clueContainer" style="margin-bottom:16px;"></div>
+
+      <div class="chat" id="chat"></div>
+      <label style="margin-top:0;">Ask a Question</label>
+      <div class="helper-text">Ask anything that helps you identify the hidden term.</div>
+      <div class="row">
+        <input type="text" id="qInput" placeholder="${placeholderForCategory(s.category)}" style="flex:1;" />
+        <button id="askBtn" ${remaining<=0?'disabled':''}>Ask</button>
+      </div>
+      <label>Final Guess</label>
+      <div class="row">
+        <input type="text" id="guessInput" placeholder="Enter the exact technical term" style="flex:1;" />
+        <button class="ghost" id="guessBtn" ${remaining<=0?'disabled':''}>Submit Guess</button>
+      </div>
+      <div class="loading" id="loadingMsg" style="display:none; margin-top:8px;">Oracle is thinking...</div>
+    </div>
+  `);
+  wrap.appendChild(dialPanel);
+
+  // Setup Exam Countdown Timer
+  state.timerInterval = setInterval(() => {
+    const left = getRemainingTime();
+    const countEl = document.getElementById('examTimerCountdown');
+    if (countEl) {
+      countEl.textContent = formatTime(left);
+      countEl.style.color = left <= 30 ? 'var(--danger)' : 'var(--accent)';
+    }
+
+    if (left <= 0) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+      state.timedOut = true;
+      state.screen = "reveal";
+      state.finalScore = calculateScore(state.solved, state.qCount, state.history);
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      try {
+        fetch('/api/rooms/timeout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: state.code, name: state.name })
+        }).catch(() => {});
+      } catch(e) {}
+      saveResult(state.code, state.name, state.qCount, false, state.finalScore);
+      render();
+    }
+  }, 1000);
+
+  // Setup Real-Time Participant Stream (SSE)
+  if (!state.participantStream && window.EventSource) {
+    try {
+      const sse = new EventSource(`/api/rooms/${state.code}/participant-stream`);
+      sse.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === "settings_update" || data.type === "init") {
+            if (data.fullScreenEnabled !== undefined && data.fullScreenEnabled !== state.fullScreenEnabled) {
+              state.fullScreenEnabled = data.fullScreenEnabled;
+              if (state.fullScreenEnabled) requestFullScreen();
+            }
+            if (data.warningsEnabled !== undefined && data.warningsEnabled !== state.warningsEnabled) {
+              state.warningsEnabled = data.warningsEnabled;
+            }
+            if (data.timerSeconds !== undefined && data.timerSeconds !== state.timerSeconds) {
+              state.timerSeconds = data.timerSeconds;
+              const elAllotted = document.getElementById('examAllottedDisplay');
+              if (elAllotted) elAllotted.textContent = formatTime(state.timerSeconds);
+            }
+          }
+        } catch (err) {}
+      };
+      state.participantStream = sse;
+    } catch (e) {}
+  }
+
+  const chatBox = dialPanel.querySelector('#chat');
+  s.history.forEach(h=>{
+    chatBox.appendChild(el(`<div class="msg user"><div class="who">${escapeHtml(s.name)}</div><div class="bubble">${escapeHtml(h.q)}</div></div>`));
+    chatBox.appendChild(el(`<div class="msg ai"><div class="who">AI Oracle</div><div class="bubble">${oracleAnswerHtml(h.a)}</div></div>`));
+  });
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // Render progressive word clue status
+  updateClueUI();
+
+  const qInput = dialPanel.querySelector('#qInput');
+  const guessInput = dialPanel.querySelector('#guessInput');
+  const loadingMsg = dialPanel.querySelector('#loadingMsg');
+  const askBtn = dialPanel.querySelector('#askBtn');
+  const guessBtn = dialPanel.querySelector('#guessBtn');
+
+  async function submitQuestion(q){
+    if(!q || s.qCount >= MAX_QUESTIONS) return;
+    askBtn.disabled = true;
+    guessBtn.disabled = true;
+    loadingMsg.style.display="block";
+
+    try{
+      const answer = await callOracle(s.term, s.category, s.history, q);
+      s.history.push({q, a:answer});
+      s.qCount += 1;
+
+      // Update local storage participant record
+      try {
+        const localKey = `vault_room_participants_${state.code}`;
+        let cached = JSON.parse(localStorage.getItem(localKey) || '[]');
+        const pIdx = cached.findIndex(p => p.name === s.name);
+        const isFin = Boolean(answer.toLowerCase().startsWith("correct") || s.qCount >= MAX_QUESTIONS);
+        const currentScore = isFin && answer.toLowerCase().startsWith("correct") ? Math.max(10, (MAX_QUESTIONS - s.qCount + 1) * 10) : 0;
+        const pUpdated = {
+          name: s.name,
+          qCount: s.qCount,
+          score: currentScore,
+          solved: answer.toLowerCase().startsWith("correct"),
+          isFinished: isFin,
+          status: isFin ? "Finished" : "Ongoing",
+          statusDetail: isFin ? (answer.toLowerCase().startsWith("correct") ? "Finished (Cracked)" : "Finished (Max Qs)") : "Ongoing"
+        };
+        if (pIdx >= 0) cached[pIdx] = Object.assign(cached[pIdx], pUpdated);
+        else cached.push(pUpdated);
+        localStorage.setItem(localKey, JSON.stringify(cached));
+      } catch (err) {}
+
+      updateClueUI(getProgressiveClues(s.term, s.qCount));
+
+      if(answer.toLowerCase().startsWith("correct")){
+        if (state.timerInterval) {
+          clearInterval(state.timerInterval);
+          state.timerInterval = null;
+        }
+        s.solved = true;
+        const score = calculateScore(true, s.qCount, s.history);
+        await saveResult(s.code, s.name, s.qCount, true, score);
+        state = {...s, screen:"reveal", finalScore:score};
+        render();
+        return;
+      }
+
+      if(s.qCount >= MAX_QUESTIONS){
+        if (state.timerInterval) {
+          clearInterval(state.timerInterval);
+          state.timerInterval = null;
+        }
+        const fScore = calculateScore(false, s.qCount, s.history);
+        await saveResult(s.code, s.name, s.qCount, false, fScore);
+        state = {...s, screen:"reveal", finalScore:fScore};
+        render();
+        return;
+      }
+
+      render();
+    }catch(e){
+      loadingMsg.style.display="none";
+      askBtn.disabled=false;
+      guessBtn.disabled=false;
+      alert("The Oracle didn't respond. Try again.");
+    }
+  }
+
+  askBtn.onclick = ()=>{
+    const v=qInput.value.trim();
+    qInput.value="";
+    submitQuestion(v);
+  };
+  qInput.onkeydown = (e)=>{
+    if(e.key==="Enter"){
+      askBtn.click();
+    }
+  };
+
+  guessBtn.onclick = ()=>{
+    const v=guessInput.value.trim();
+    guessInput.value="";
+    if(v) submitQuestion(`Is it ${v}?`);
+  };
+  guessInput.onkeydown = (e)=>{
+    if(e.key==="Enter"){
+      guessBtn.click();
+    }
+  };
+
+  if(s.screen === "reveal"){
+    renderReveal(wrap);
+  }
+}
+
+function renderReveal(wrap){
+  // handled inline below via override
+}
+
+// Patch render to handle reveal screen distinctly
+const _origRender = render;
+render = function(){
+  if(state.screen === "reveal"){
+    disarmAntiCheatSystem();
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+    if (state.participantStream) {
+      state.participantStream.close();
+      state.participantStream = null;
+    }
+
+    const app = document.getElementById('app');
+    app.innerHTML = "";
+    app.appendChild(el(`<div class="wrap"></div>`));
+    const wrap = app.firstChild;
+
+    const maxQ = state.maxQuestions || 20;
+    const title = state.cheatingTerminated 
+      ? "EXAM TERMINATED · DISQUALIFIED"
+      : (state.timedOut 
+        ? "EXAM TIME FINISHED" 
+        : (state.solved ? "Vault Cracked" : "Vault Sealed"));
+    
+    header(wrap, `ROOM ${state.code}`, title, "");
+
+    const unusedQ = Math.max(0, maxQ - state.qCount);
+    const hintMsg = state.cheatingTerminated 
+      ? `You have been permanently eliminated for leaving full screen after receiving the fair warning. In accordance with strict exam integrity policies, 0 points have been awarded regardless of question count or closeness to the answer.`
+      : (state.timedOut
+        ? `The host-allotted exam duration (${formatTime(state.timerSeconds)}) has finished. Efficiency marks awarded: ${state.finalScore} pts (${unusedQ} unused questions preserved).`
+        : (state.solved ? `Vault Cracked in ${state.qCount} question(s)! Solved bonus (100) + Question Economy (+${unusedQ * 5}): ${state.finalScore} pts.` : `Out of questions (${maxQ}). Efficiency score awarded: ${state.finalScore} pts.`));
+
+    const scoreTag = state.cheatingTerminated
+      ? "Disqualified · Strict 0 Points Applied"
+      : (state.solved
+        ? "Vault Cracked (100+) + Question Economy Bonus"
+        : (state.qCount > 0
+          ? `Unsolved Efficiency Score · ${unusedQ} Questions Preserved`
+          : "No Questions Asked (0 pts)"));
+
+    const panel = el(`
+      <div class="panel win" style="${state.cheatingTerminated ? 'border-color:#ff5252; box-shadow:0 0 25px rgba(255,82,82,0.25);' : ''}">
+        <div class="lbl" style="font-family:var(--mono); font-size:11px; color:${state.cheatingTerminated ? '#ff5252' : 'var(--text-dim)'}; letter-spacing:.1em; text-transform:uppercase;">${state.cheatingTerminated ? "Integrity Violation — Candidate Eliminated" : (state.timedOut ? "Time Allotted Ended · Secret Vault Term" : "The secret term was")}</div>
+        <div class="term" style="${state.cheatingTerminated ? 'color:#ff5252;' : ''}">${escapeHtml(state.term || "Secret Vault Term")}</div>
+        <div class="score" style="${state.cheatingTerminated ? 'color:#ff5252;' : ''}">${state.cheatingTerminated ? 0 : (state.finalScore || 0)}</div>
+        <div style="font-size:12px; font-weight:600; color:${state.cheatingTerminated ? '#ff5252' : 'var(--accent)'}; margin-top:-6px; margin-bottom:12px; letter-spacing:.05em;">
+          ${scoreTag}
+        </div>
+        <div class="hint">${hintMsg}</div>
+        <div class="row" style="justify-content:center; margin-top:18px;">
+          <button id="again">Join Another Room</button>
+        </div>
+      </div>
+    `);
+    wrap.appendChild(panel);
+
+    panel.querySelector('#again').onclick = ()=>{
+      state={
+        screen:"join", 
+        apiKey: localStorage.getItem('participant_api_key') || "", 
+        tabSwitchWarnings: 0, 
+        cheatingTerminated: false,
+        timedOut: false,
+        timerInterval: null,
+        gameStartTime: null
+      };
+      render();
+    };
+    return;
+  }
+  _origRender();
+};
+
+render();
+</script>
+</body>
+</html>
